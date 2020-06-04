@@ -1,13 +1,11 @@
 package com.example.imagecapture_camerax
 
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
 import androidx.camera.core.*
@@ -16,21 +14,20 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
-import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.jar.Manifest
 
 class MainActivity : AppCompatActivity() {
 
     var savedUri: Uri? = null
     var granted = false
+    private var camera: Camera? = null
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
     private var imageAnalyzer: ImageAnalysis? = null
-    private var camera: Camera? = null
+
 
     private lateinit var outputDirectory: File
     private lateinit var cameraExecutor: ExecutorService
@@ -48,6 +45,17 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
+
+        iv2.setOnClickListener {
+            Intent().also {
+                it.action = Intent.ACTION_VIEW
+                it.putExtra(Intent.EXTRA_STREAM, savedUri)
+                it.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                it.type = "image/*"
+                startActivity(Intent.createChooser(it, "openning..."))
+            }
+
+        }
         // Setup the listener for take photo button
 
         camera_capture_button.setOnClickListener { takePhoto() }
@@ -98,7 +106,7 @@ class MainActivity : AppCompatActivity() {
 
                 // Bind use cases to camera
                 camera = cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview , imageCapture
+                    this, cameraSelector, preview, imageCapture
                 )
                 preview?.setSurfaceProvider(previewView.createSurfaceProvider(camera?.cameraInfo))
             } catch (exc: Exception) {
@@ -109,11 +117,10 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-
     private fun takePhoto() {
         // Get a stable reference of the modifiable image capture use case
         val imageCapture = imageCapture ?: return
-            //.setTargetRotation(previewView.display.rotation)
+        //.setTargetRotation(previewView.display.rotation)
 
 
         // Create timestamped output file to hold the image
@@ -140,10 +147,14 @@ class MainActivity : AppCompatActivity() {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     savedUri = Uri.fromFile(photoFile)
 
-                    Intent(applicationContext,Activity2::class.java).apply {
+
+                    Intent(applicationContext, Activity2::class.java).apply {
                         data = savedUri
                         startActivity(this)
                     }
+
+                    iv2.setImageURI(savedUri)
+
                     val msg = "Photo capture succeeded: $savedUri"
                     Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
                 }
