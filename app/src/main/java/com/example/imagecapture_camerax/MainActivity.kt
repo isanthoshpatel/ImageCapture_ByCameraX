@@ -22,10 +22,11 @@ import java.util.concurrent.Executors
 class MainActivity : AppCompatActivity() {
 
     var savedUri: Uri? = null
-    var granted = false
+    var storagePermissionGranted = false
+    var cameraPermissionGranted = false
 
     private var camera: Camera? = null
-   lateinit var cameraSelector:CameraSelector
+    lateinit var cameraSelector: CameraSelector
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
     private var imageAnalyzer: ImageAnalysis? = null
@@ -34,20 +35,25 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cameraExecutor: ExecutorService
 
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         // Request camera permissions
-        if (granted) {
+
+        if (storagePermissionGranted&&cameraPermissionGranted){
             startCamera()
-        } else {
-            ActivityCompat.requestPermissions(
-                this, arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE), 1
-            )
+        }else{
+          reqPermissions()
         }
 
+        camera_capture_button.setOnClickListener {
+            if (storagePermissionGranted && cameraPermissionGranted) {
+                takePhoto()
+            }else{
+                reqPermissions()
+            }
+        }
 
         iv2.setOnClickListener {
             Intent().also {
@@ -61,7 +67,6 @@ class MainActivity : AppCompatActivity() {
         }
         // Setup the listener for take photo button
 
-        camera_capture_button.setOnClickListener { takePhoto() }
         outputDirectory = getOutputDirectory()
         cameraExecutor = Executors.newSingleThreadExecutor()
 
@@ -73,15 +78,20 @@ class MainActivity : AppCompatActivity() {
     ) {
         if (requestCode == 1 && grantResults.size >= 0) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startCamera()
+                storagePermissionGranted = true
             } else {
-                Toast.makeText(
-                    this,
-                    "Permissions not granted by the user.",
-                    Toast.LENGTH_SHORT
-                ).show()
-                finish()
+             reqPermissions()
             }
+        }
+        if (requestCode == 2 && grantResults.size >= 0) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                cameraPermissionGranted = true
+            } else {
+               reqPermissions()
+            }
+        }
+        if (storagePermissionGranted && cameraPermissionGranted) {
+            startCamera()
         }
     }
 
@@ -183,6 +193,33 @@ class MainActivity : AppCompatActivity() {
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
     }
 
+    fun reqPermissions(){
+        if (ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            storagePermissionGranted = true
+
+        } else {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE), 1
+            )
+        }
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            cameraPermissionGranted = true
+
+        } else {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(android.Manifest.permission.CAMERA), 2
+            )
+        }
+    }
 }
 
 
