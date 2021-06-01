@@ -1,5 +1,6 @@
 package com.example.imagecapture_camerax
 
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -7,6 +8,10 @@ import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
+import android.view.OrientationEventListener
+import android.view.Surface
+import android.view.VelocityTracker
 import android.widget.Toast
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -18,13 +23,15 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
+
+    var frontCam = false
     var savedUri: Uri? = null
     var storagePermissionGranted = false
     var cameraPermissionGranted = false
-
     private var camera: Camera? = null
     lateinit var cameraSelector: CameraSelector
     private var preview: Preview? = null
@@ -41,11 +48,9 @@ class MainActivity : AppCompatActivity() {
 
         // Request camera permissions
 
-        if (storagePermissionGranted&&cameraPermissionGranted){
-            startCamera()
-        }else{
+
           reqPermissions()
-        }
+
 
         camera_capture_button.setOnClickListener {
             if (storagePermissionGranted && cameraPermissionGranted) {
@@ -64,6 +69,10 @@ class MainActivity : AppCompatActivity() {
                 startActivity(Intent.createChooser(it, "openning..."))
             }
 
+        }
+        bt_changeCamera.setOnClickListener {
+            frontCam=!frontCam
+            startCamera()
         }
         // Setup the listener for take photo button
 
@@ -102,8 +111,16 @@ class MainActivity : AppCompatActivity() {
             // Used to bind the lifecycle of cameras to the lifecycle owner
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
-            cameraSelector =
-                CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
+            if (frontCam){
+                cameraSelector =
+                    CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                        .build()
+            }else{
+                cameraSelector =
+                    CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                        .build()
+            }
+
 
             // Preview
             preview = Preview.Builder()
@@ -112,6 +129,20 @@ class MainActivity : AppCompatActivity() {
             imageCapture = ImageCapture.Builder()
                 .build()
 
+            val orientationEventListener = object : OrientationEventListener(this as Context) {
+                override fun onOrientationChanged(orientation : Int) {
+                    // Monitors orientation values to determine the target rotation value
+                    val rotation : Int = when (orientation) {
+                        in 45..134 -> Surface.ROTATION_270
+                        in 135..224 -> Surface.ROTATION_180
+                        in 225..314 -> Surface.ROTATION_90
+                        else -> Surface.ROTATION_0
+                    }
+
+                    imageCapture!!.targetRotation = rotation
+                }
+            }
+            orientationEventListener.enable()
 
             // Select back camera
 
@@ -219,7 +250,12 @@ class MainActivity : AppCompatActivity() {
                 this, arrayOf(android.Manifest.permission.CAMERA), 2
             )
         }
+        if (storagePermissionGranted&&cameraPermissionGranted){
+            startCamera()
+        }
     }
+
+
 }
 
 
