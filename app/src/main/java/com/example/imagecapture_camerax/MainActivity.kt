@@ -23,14 +23,17 @@ class MainActivity : AppCompatActivity() {
 
     var savedUri: Uri? = null
     var granted = false
+
     private var camera: Camera? = null
+   lateinit var cameraSelector:CameraSelector
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
     private var imageAnalyzer: ImageAnalysis? = null
 
-
     private lateinit var outputDirectory: File
     private lateinit var cameraExecutor: ExecutorService
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,6 +92,9 @@ class MainActivity : AppCompatActivity() {
             // Used to bind the lifecycle of cameras to the lifecycle owner
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
+            cameraSelector =
+                CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
+
             // Preview
             preview = Preview.Builder()
                 .build()
@@ -96,18 +102,15 @@ class MainActivity : AppCompatActivity() {
             imageCapture = ImageCapture.Builder()
                 .build()
 
+
             // Select back camera
-            val cameraSelector =
-                CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
 
             try {
                 // Unbind use cases before rebinding
                 cameraProvider.unbindAll()
 
                 // Bind use cases to camera
-                camera = cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture
-                )
+                camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
                 preview?.setSurfaceProvider(previewView.createSurfaceProvider(camera?.cameraInfo))
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)

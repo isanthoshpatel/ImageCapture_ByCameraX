@@ -19,7 +19,7 @@ class Activity2 : AppCompatActivity() {
         }
         bt_share.setOnClickListener {
             Intent().also {
-                it.action = Intent.ACTION_SEND
+                it.action = Intent.ACTION_SET_WALLPAPER
                 it.putExtra(Intent.EXTRA_STREAM,uri)
                 it.type = "image/*"
                 it.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
