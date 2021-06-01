@@ -5,28 +5,26 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import android.view.MotionEvent
 import android.view.OrientationEventListener
 import android.view.Surface
-import android.view.VelocityTracker
+import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
-import androidx.camera.core.impl.CameraFilter
-import androidx.camera.core.impl.CameraInternal
+import androidx.camera.core.impl.ImageCaptureConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.CameraView
+import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
@@ -62,20 +60,31 @@ class MainActivity : AppCompatActivity() {
                 reqPermissions()
             }
         }
-
-        iv2.setOnClickListener {
-            Intent().also {
-                it.action = Intent.ACTION_VIEW
-                it.putExtra(Intent.EXTRA_STREAM, savedUri)
-                it.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                it.type = "image/*"
-                startActivity(Intent.createChooser(it, "openning..."))
-            }
-
-        }
         bt_changeCamera.setOnClickListener {
             frontCam=!frontCam
             startCamera()
+        }
+
+        iv2.setOnClickListener {
+            var i = Intent(this@MainActivity, Activity2::class.java)
+            i.data = savedUri
+            startActivity(i)
+
+        }
+        bt_retry.setOnClickListener {
+
+            fl.visibility = View.INVISIBLE
+            camera_capture_button.visibility =View.VISIBLE
+            bt_changeCamera.visibility = View.VISIBLE
+            startCamera()
+        }
+        bt_ok.setOnClickListener {
+            camera_capture_button.visibility =View.VISIBLE
+            bt_changeCamera.visibility = View.VISIBLE
+            fl.visibility = View.INVISIBLE
+            var i = Intent(this@MainActivity, Activity2::class.java)
+            i.data = savedUri
+            startActivity(i)
         }
         // Setup the listener for take photo button
 
@@ -114,19 +123,11 @@ class MainActivity : AppCompatActivity() {
             // Used to bind the lifecycle of cameras to the lifecycle owner
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
-            if (frontCam){
+            if (frontCam) {
                 cameraSelector =
                     CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-                        .appendFilter { cameras ->
-                            cameras.forEach {
-                                it.cameraControl.setLinearZoom(0.5f)
-                                it.cameraControl.enableTorch(true)
-
-                            }
-                            cameras
-                        }
                         .build()
-            }else{
+            } else {
                 cameraSelector =
                     CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK)
                         .build()
@@ -137,13 +138,14 @@ class MainActivity : AppCompatActivity() {
             preview = Preview.Builder()
                 .build()
 
+
             imageCapture = ImageCapture.Builder()
                 .build()
 
             val orientationEventListener = object : OrientationEventListener(this as Context) {
-                override fun onOrientationChanged(orientation : Int) {
+                override fun onOrientationChanged(orientation: Int) {
                     // Monitors orientation values to determine the target rotation value
-                    val rotation : Int = when (orientation) {
+                    val rotation: Int = when (orientation) {
                         in 45..134 -> Surface.ROTATION_270
                         in 135..224 -> Surface.ROTATION_180
                         in 225..314 -> Surface.ROTATION_90
@@ -202,16 +204,11 @@ class MainActivity : AppCompatActivity() {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     savedUri = Uri.fromFile(photoFile)
 
-
-                    Intent(applicationContext, Activity2::class.java).apply {
-                        data = savedUri
-                        startActivity(this)
-                    }
-
                     iv2.setImageURI(savedUri)
-                    var i = Intent(this@MainActivity, Activity2::class.java)
-                    i.data = savedUri
-                    startActivity(i)
+                    fl.visibility = View.VISIBLE
+                    camera_capture_button.visibility = View.INVISIBLE
+                    bt_changeCamera.visibility=View.INVISIBLE
+                    iv_preview.setImageURI(savedUri)
 
                     val msg = "Photo capture succeeded: $savedUri"
                     Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
