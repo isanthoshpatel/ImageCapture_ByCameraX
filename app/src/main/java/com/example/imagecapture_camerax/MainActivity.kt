@@ -14,7 +14,10 @@ import android.view.Surface
 import android.view.VelocityTracker
 import android.widget.Toast
 import androidx.camera.core.*
+import androidx.camera.core.impl.CameraFilter
+import androidx.camera.core.impl.CameraInternal
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.CameraView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
@@ -114,6 +117,14 @@ class MainActivity : AppCompatActivity() {
             if (frontCam){
                 cameraSelector =
                     CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                        .appendFilter { cameras ->
+                            cameras.forEach {
+                                it.cameraControl.setLinearZoom(0.5f)
+                                it.cameraControl.enableTorch(true)
+
+                            }
+                            cameras
+                        }
                         .build()
             }else{
                 cameraSelector =
@@ -198,6 +209,9 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     iv2.setImageURI(savedUri)
+                    var i = Intent(this@MainActivity, Activity2::class.java)
+                    i.data = savedUri
+                    startActivity(i)
 
                     val msg = "Photo capture succeeded: $savedUri"
                     Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
